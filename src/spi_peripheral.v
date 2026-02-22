@@ -90,8 +90,8 @@ module spi_peripheral # (
             ncs_reg_2   <= 1'd1;
             sclk_reg_1  <= 1'd0;
             sclk_reg_2  <= 1'd0;
-            copi_reg_1   <= 1'd0;
-            copi_reg_2   <= 1'd0;
+            copi_reg_1  <= 1'd0;
+            copi_reg_2  <= 1'd0;
             ncs_sync    <= 1'd1;
             sclk_sync   <= 1'd0;
             copi_sync   <= 1'd0;
@@ -107,8 +107,8 @@ module spi_peripheral # (
             sclk_reg_2  <= sclk_reg_1;
             sclk_sync   <= sclk_reg_2;
  
-            copi_reg_1   <= copi;
-            copi_reg_2   <= copi_reg_1;
+            copi_reg_1  <= copi;
+            copi_reg_2  <= copi_reg_1;
             copi_sync   <= copi_reg_2;
 
             ncs_sync_d  <= ncs_sync;
