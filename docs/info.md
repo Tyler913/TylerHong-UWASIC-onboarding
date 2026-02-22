@@ -9,12 +9,26 @@ You can also include images in this folder and reference them in the markdown. E
 
 ## How it works
 
-Explain how your project works
+This design uses SPI inputs ncs, sclk, and copi to write five internal registers.
+These registers control 16 outputs across uo_out and uio_out, including per-channel PWM
+enable bits and one shared 8-bit duty-cycle value.
+
+Each channel either:
+- stays at its configured register value, or
+- is gated by the shared PWM signal when PWM is enabled for that channel.
+
+All uio pins are configured and driven as outputs.
 
 ## How to test
 
-Explain how to use your project
+Run the cocotb testbench from the test folder:
+
+```sh
+make
+```
+
+No external hardware is required.
 
 ## External hardware
 
-List external hardware used in your project (e.g. PMOD, LED display, etc), if any
+None.
