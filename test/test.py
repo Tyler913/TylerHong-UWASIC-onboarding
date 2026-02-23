@@ -151,11 +151,86 @@ async def test_spi(dut):
 
 @cocotb.test()
 async def test_pwm_freq(dut):
-    # Write your test here
+    dut._log.info("Start PWM Frequency test")
+
+    clock = Clock(dut.clk, 100, units="ns")
+    cocotb.start_soon(clock.start())
+
+    dut.ena.value = 1
+    dut.ui_in.value = ui_in_logicarray(1, 0, 0)
+    dut.rst_n.value = 0
+    await ClockCycles(dut.clk, 5)
+    dut.rst_n.value = 1
+    await ClockCycles(dut.clk, 5)
+
+    # Route PWM to uo_out[0]
+    await send_spi_transaction(dut, 1, 0x00, 0x01)
+    await send_spi_transaction(dut, 1, 0x02, 0x01)
+    await send_spi_transaction(dut, 1, 0x04, 0x80)
+
+    min_freq_hz = 2970.0
+    max_freq_hz = 3030.0
+
+    edge_count = 0
+    first_edge_cycle = 0
+    measured_period = None
+    prev = int(dut.uo_out.value) & 0x1
+
+    for cycle in range(1, 20000):
+        await ClockCycles(dut.clk, 1)
+        cur = int(dut.uo_out.value) & 0x1
+        if prev == 0 and cur == 1:
+            edge_count += 1
+            if edge_count == 1:
+                first_edge_cycle = cycle
+            elif edge_count == 2:
+                measured_period = cycle - first_edge_cycle
+                break
+        prev = cur
+
+    assert measured_period is not None, "Could not measure two PWM rising edges"
+    measured_freq_hz = 1.0 / (measured_period * 100e-9)
+    assert min_freq_hz <= measured_freq_hz <= max_freq_hz, (
+        f"Expected PWM frequency in [{min_freq_hz}, {max_freq_hz}] Hz, got {measured_freq_hz:.2f} Hz"
+    )
+
     dut._log.info("PWM Frequency test completed successfully")
 
 
 @cocotb.test()
 async def test_pwm_duty(dut):
-    # Write your test here
+    dut._log.info("Start PWM Duty Cycle test")
+
+    clock = Clock(dut.clk, 100, units="ns")
+    cocotb.start_soon(clock.start())
+
+    dut.ena.value = 1
+    dut.ui_in.value = ui_in_logicarray(1, 0, 0)
+    dut.rst_n.value = 0
+    await ClockCycles(dut.clk, 5)
+    dut.rst_n.value = 1
+    await ClockCycles(dut.clk, 5)
+
+    await send_spi_transaction(dut, 1, 0x00, 0x01)
+    await send_spi_transaction(dut, 1, 0x02, 0x01)
+
+    period_cycles = 13 * 256
+    test_values = [0, 1, 64, 128, 192, 254, 255]
+
+    for val in test_values:
+        await send_spi_transaction(dut, 1, 0x04, val)
+        await ClockCycles(dut.clk, period_cycles)
+
+        high_cycles = 0
+        for _ in range(period_cycles):
+            await ClockCycles(dut.clk, 1)
+            high_cycles += int(dut.uo_out.value) & 0x1
+
+        expected_high = period_cycles if val == 255 else val * 13
+        tolerance = 13
+
+        assert abs(high_cycles - expected_high) <= tolerance, (
+            f"duty=0x{val:02X}: expected high_cycles around {expected_high}, got {high_cycles}"
+        )
+
     dut._log.info("PWM Duty Cycle test completed successfully")
